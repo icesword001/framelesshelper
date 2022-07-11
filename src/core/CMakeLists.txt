@@ -44,6 +44,7 @@ set(PUBLIC_HEADERS
     ${INCLUDE_PREFIX}/framelessmanager.h
     ${INCLUDE_PREFIX}/utils.h
     ${INCLUDE_PREFIX}/chromepalette.h
+    ${INCLUDE_PREFIX}/micamaterial.h
 )
 
 set(PUBLIC_HEADERS_ALIAS
@@ -59,6 +60,7 @@ set(PRIVATE_HEADERS
     ${INCLUDE_PREFIX}/private/framelessconfig_p.h
     ${INCLUDE_PREFIX}/private/sysapiloader_p.h
     ${INCLUDE_PREFIX}/private/chromepalette_p.h
+    ${INCLUDE_PREFIX}/private/micamaterial_p.h
 )
 
 set(SOURCES
@@ -70,6 +72,7 @@ set(SOURCES
     sysapiloader.cpp
     chromepalette.cpp
     global.cpp
+    micamaterial.cpp
 )
 
 if(WIN32)

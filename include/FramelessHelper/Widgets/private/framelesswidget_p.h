@@ -26,6 +26,7 @@
 
 #include "framelesshelperwidgets_global.h"
 #include <QtCore/qobject.h>
+#include <QtCore/qpointer.h>
 
 FRAMELESSHELPER_BEGIN_NAMESPACE
 
@@ -55,7 +56,7 @@ private:
     void initialize();
 
 private:
-    FramelessWidget *q_ptr = nullptr;
+    QPointer<FramelessWidget> q_ptr = nullptr;
     Qt::WindowState m_savedWindowState = Qt::WindowNoState;
     QScopedPointer<WidgetsSharedHelper> m_helper;
 };

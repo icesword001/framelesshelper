@@ -27,6 +27,7 @@
 #include <QtGui/qevent.h>
 #include <QtGui/qpainter.h>
 #include <QtWidgets/qwidget.h>
+#include <micamaterial.h>
 #include <utils.h>
 
 FRAMELESSHELPER_BEGIN_NAMESPACE
@@ -35,6 +36,7 @@ using namespace Global;
 
 WidgetsSharedHelper::WidgetsSharedHelper(QObject *parent) : QObject(parent)
 {
+    m_micaMaterial.reset(new MicaMaterial(this));
 }
 
 WidgetsSharedHelper::~WidgetsSharedHelper() = default;
@@ -49,6 +51,9 @@ void WidgetsSharedHelper::setup(QWidget *widget)
         return;
     }
     m_targetWidget = widget;
+    connect(m_micaMaterial.data(), &MicaMaterial::shouldRedraw, m_targetWidget, [this](){
+        m_targetWidget->update();
+    });
     m_targetWidget->installEventFilter(this);
     updateContentsMargins();
     m_targetWidget->update();
@@ -76,6 +81,12 @@ bool WidgetsSharedHelper::eventFilter(QObject *object, QEvent *event)
     case QEvent::WindowStateChange: {
         changeEventHandler(event);
     } break;
+    case QEvent::Move:
+    case QEvent::Resize: {
+        if (m_micaEnabled) {
+            m_targetWidget->update();
+        }
+    } break;
     default:
         break;
     }
@@ -99,28 +110,27 @@ void WidgetsSharedHelper::changeEventHandler(QEvent *event)
 
 void WidgetsSharedHelper::paintEventHandler(QPaintEvent *event)
 {
-#ifdef Q_OS_WINDOWS
-    Q_ASSERT(event);
-    if (!event) {
-        return;
-    }
-    if (!shouldDrawFrameBorder()) {
-        return;
-    }
-    QPainter painter(m_targetWidget);
-    painter.save();
-    QPen pen = {};
-    pen.setColor(Utils::getFrameBorderColor(m_targetWidget->isActiveWindow()));
-    pen.setWidth(kDefaultWindowFrameBorderThickness);
-    painter.setPen(pen);
-    // In fact, we should use "m_targetWidget->width() - 1" here but we can't
-    // because Qt's drawing system has some rounding errors internally and if
-    // we minus one here we'll get a one pixel gap, so sad. But drawing a line
-    // with a little extra pixels won't hurt anyway.
-    painter.drawLine(0, 0, m_targetWidget->width(), 0);
-    painter.restore();
-#else
     Q_UNUSED(event);
+    if (m_micaEnabled && !m_micaMaterial.isNull()) {
+        QPainter painter(m_targetWidget);
+        m_micaMaterial->paint(&painter, m_targetWidget->size(),
+            m_targetWidget->mapToGlobal(QPoint(0, 0)));
+    }
+#ifdef Q_OS_WINDOWS
+    if (shouldDrawFrameBorder()) {
+        QPainter painter(m_targetWidget);
+        painter.save();
+        QPen pen = {};
+        pen.setColor(Utils::getFrameBorderColor(m_targetWidget->isActiveWindow()));
+        pen.setWidth(kDefaultWindowFrameBorderThickness);
+        painter.setPen(pen);
+        // In fact, we should use "m_targetWidget->width() - 1" here but we can't
+        // because Qt's drawing system has some rounding errors internally and if
+        // we minus one here we'll get a one pixel gap, so sad. But drawing a line
+        // with a little extra pixels won't hurt anyway.
+        painter.drawLine(0, 0, m_targetWidget->width(), 0);
+        painter.restore();
+    }
 #endif
 }
 

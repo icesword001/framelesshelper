@@ -55,6 +55,9 @@ FRAMELESSHELPER_CORE_API void moveWindowToDesktopCenter(
 [[nodiscard]] FRAMELESSHELPER_CORE_API bool isTitleBarColorized();
 [[nodiscard]] FRAMELESSHELPER_CORE_API bool
     setBlurBehindWindowEnabled(const WId windowId, const Global::BlurMode mode, const QColor &color);
+[[nodiscard]] FRAMELESSHELPER_CORE_API QString getWallpaperFilePath();
+[[nodiscard]] FRAMELESSHELPER_CORE_API Global::WallpaperAspectStyle getWallpaperAspectStyle();
+[[nodiscard]] FRAMELESSHELPER_CORE_API bool isBlurBehindWindowSupported();
 
 #ifdef Q_OS_WINDOWS
 [[nodiscard]] FRAMELESSHELPER_CORE_API bool isWindowsVersionOrGreater(const Global::WindowsVersion version);

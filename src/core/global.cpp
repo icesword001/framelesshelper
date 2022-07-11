@@ -30,10 +30,12 @@
 #endif
 #include "framelesshelper_qt.h"
 #include "chromepalette.h"
+#include "micamaterial.h"
 #include "sysapiloader_p.h"
 #include "framelessmanager_p.h"
 #include "framelessconfig_p.h"
 #include "chromepalette_p.h"
+#include "micamaterial_p.h"
 #include <QtGui/qguiapplication.h>
 
 #ifndef COMPILER_STRING
@@ -141,6 +143,7 @@ void initialize()
     qRegisterMetaType<WindowsVersion>();
     qRegisterMetaType<ApplicationType>();
     qRegisterMetaType<BlurMode>();
+    qRegisterMetaType<WallpaperAspectStyle>();
     qRegisterMetaType<VersionNumber>();
     qRegisterMetaType<SystemParameters>();
     qRegisterMetaType<VersionInfo>();
@@ -155,6 +158,8 @@ void initialize()
     qRegisterMetaType<FramelessManagerPrivate>();
     qRegisterMetaType<FramelessConfig>();
     qRegisterMetaType<ChromePalettePrivate>();
+    qRegisterMetaType<MicaMaterial>();
+    qRegisterMetaType<MicaMaterialPrivate>();
 #endif
 }
 

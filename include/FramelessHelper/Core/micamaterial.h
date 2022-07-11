@@ -24,46 +24,49 @@
 
 #pragma once
 
-#include "framelesshelperwidgets_global.h"
+#include "framelesshelpercore_global.h"
 #include <QtCore/qobject.h>
-#include <QtCore/qpointer.h>
-
-QT_BEGIN_NAMESPACE
-class QPaintEvent;
-QT_END_NAMESPACE
 
 FRAMELESSHELPER_BEGIN_NAMESPACE
 
-class MicaMaterial;
+class MicaMaterialPrivate;
 
-class FRAMELESSHELPER_WIDGETS_API WidgetsSharedHelper : public QObject
+class FRAMELESSHELPER_CORE_API MicaMaterial : public QObject
 {
     Q_OBJECT
-    Q_DISABLE_COPY_MOVE(WidgetsSharedHelper)
+    Q_DISABLE_COPY_MOVE(MicaMaterial)
+    Q_DECLARE_PRIVATE(MicaMaterial)
+
+    Q_PROPERTY(QColor tintColor READ tintColor WRITE setTintColor NOTIFY tintColorChanged FINAL)
+    Q_PROPERTY(qreal tintOpacity READ tintOpacity WRITE setTintOpacity NOTIFY tintOpacityChanged FINAL)
+    Q_PROPERTY(qreal noiseOpacity READ noiseOpacity WRITE setNoiseOpacity NOTIFY noiseOpacityChanged FINAL)
 
 public:
-    explicit WidgetsSharedHelper(QObject *parent = nullptr);
-    ~WidgetsSharedHelper() override;
+    explicit MicaMaterial(QObject *parent = nullptr);
+    ~MicaMaterial() override;
 
-    void setup(QWidget *widget);
+    Q_NODISCARD QColor tintColor() const;
+    void setTintColor(const QColor &value);
 
-protected:
-    Q_NODISCARD bool eventFilter(QObject *object, QEvent *event) override;
+    Q_NODISCARD qreal tintOpacity() const;
+    void setTintOpacity(const qreal value);
 
-private Q_SLOTS:
-    void updateContentsMargins();
+    Q_NODISCARD qreal noiseOpacity() const;
+    void setNoiseOpacity(const qreal value);
+
+public Q_SLOTS:
+    void paint(QPainter *painter, const QSize &size, const QPoint &pos) const;
+
+Q_SIGNALS:
+    void tintColorChanged();
+    void tintOpacityChanged();
+    void noiseOpacityChanged();
+    void shouldRedraw();
 
 private:
-    void changeEventHandler(QEvent *event);
-    void paintEventHandler(QPaintEvent *event);
-    Q_NODISCARD bool shouldDrawFrameBorder() const;
-
-private:
-    QPointer<QWidget> m_targetWidget = nullptr;
-    bool m_micaEnabled = true;
-    QScopedPointer<MicaMaterial> m_micaMaterial;
+    QScopedPointer<MicaMaterialPrivate> d_ptr;
 };
 
 FRAMELESSHELPER_END_NAMESPACE
 
-Q_DECLARE_METATYPE2(FRAMELESSHELPER_PREPEND_NAMESPACE(WidgetsSharedHelper))
+Q_DECLARE_METATYPE2(FRAMELESSHELPER_PREPEND_NAMESPACE(MicaMaterial))

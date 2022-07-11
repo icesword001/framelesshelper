@@ -161,6 +161,9 @@ void FramelessWidgetsHelperPrivate::setBlurBehindWindowEnabled(const bool enable
     if (!window) {
         return;
     }
+    if (!Utils::isBlurBehindWindowSupported()) {
+        return;
+    }
     if (m_blurBehindWindowEnabled == enable) {
         return;
     }

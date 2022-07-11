@@ -46,22 +46,6 @@ FRAMELESSHELPER_BEGIN_NAMESPACE
 
 using namespace Global;
 
-struct Win32UtilsHelperData
-{
-    WNDPROC originalWindowProc = nullptr;
-    IsWindowFixedSizeCallback isWindowFixedSize = nullptr;
-    IsInsideTitleBarDraggableAreaCallback isInTitleBarArea = nullptr;
-    GetWindowDevicePixelRatioCallback getDevicePixelRatio = nullptr;
-};
-
-struct Win32UtilsHelper
-{
-    QMutex mutex;
-    QHash<WId, Win32UtilsHelperData> data = {};
-};
-
-Q_GLOBAL_STATIC(Win32UtilsHelper, g_utilsHelper)
-
 static constexpr const wchar_t kDummyWindowClassName[] = L"FRAMELESSHELPER_DUMMY_WINDOW_CLASS";
 static const QString qDwmColorKeyName = QString::fromWCharArray(kDwmColorKeyName);
 FRAMELESSHELPER_STRING_CONSTANT2(SuccessMessageText, "The operation completed successfully.")
@@ -140,6 +124,24 @@ FRAMELESSHELPER_STRING_CONSTANT(RegisterClassExW)
 FRAMELESSHELPER_STRING_CONSTANT(CreateWindowExW)
 FRAMELESSHELPER_STRING_CONSTANT(AccentColor)
 FRAMELESSHELPER_STRING_CONSTANT(GetScaleFactorForMonitor)
+FRAMELESSHELPER_STRING_CONSTANT(WallpaperStyle)
+FRAMELESSHELPER_STRING_CONSTANT(TileWallpaper)
+
+struct Win32UtilsHelperData
+{
+    WNDPROC originalWindowProc = nullptr;
+    IsWindowFixedSizeCallback isWindowFixedSize = nullptr;
+    IsInsideTitleBarDraggableAreaCallback isInTitleBarArea = nullptr;
+    GetWindowDevicePixelRatioCallback getDevicePixelRatio = nullptr;
+};
+
+struct Win32UtilsHelper
+{
+    QMutex mutex;
+    QHash<WId, Win32UtilsHelperData> data = {};
+};
+
+Q_GLOBAL_STATIC(Win32UtilsHelper, g_utilsHelper)
 
 struct SYSTEM_METRIC
 {
@@ -238,6 +240,12 @@ private:
 [[nodiscard]] static inline QString personalizeRegistryKey()
 {
     static const QString key = (hkcuRegistryKey() + u'\\' + QString::fromWCharArray(kPersonalizeRegistryKey));
+    return key;
+}
+
+[[nodiscard]] static inline QString desktopRegistryKey()
+{
+    static const QString key = (hkcuRegistryKey() + u'\\' + QString::fromWCharArray(kDesktopRegistryKey));
     return key;
 }
 
@@ -1731,6 +1739,53 @@ QColor Utils::getDwmAccentColor()
     // convert it to the #AARRGGBB format that Qt accepts.
     const QColor abgr = QColor::fromRgba(value);
     return QColor(abgr.blue(), abgr.green(), abgr.red(), abgr.alpha());
+}
+
+QString Utils::getWallpaperFilePath()
+{
+    wchar_t path[MAX_PATH] = {};
+    if (SystemParametersInfoW(SPI_GETDESKWALLPAPER, MAX_PATH, path, 0) == FALSE) {
+        qWarning() << getSystemErrorMessage(kSystemParametersInfoW);
+        return {};
+    }
+    return QString::fromWCharArray(path);
+}
+
+WallpaperAspectStyle Utils::getWallpaperAspectStyle()
+{
+    static constexpr const auto defaultStyle = WallpaperAspectStyle::Fill;
+    const QSettings registry(desktopRegistryKey(), QSettings::NativeFormat);
+    bool ok = false;
+    const DWORD wallpaperStyle = registry.value(kWallpaperStyle).toULongLong(&ok);
+    if (!ok) {
+        return defaultStyle;
+    }
+    switch (wallpaperStyle) {
+    case 0: {
+        ok = false;
+        const DWORD tileWallpaper = registry.value(kTileWallpaper).toULongLong(&ok);
+        if (ok && (tileWallpaper != 0)) {
+            return WallpaperAspectStyle::Tile;
+        }
+        return WallpaperAspectStyle::Center;
+    }
+    case 2:
+        return WallpaperAspectStyle::Stretch; // Ignore aspect ratio to fill.
+    case 6:
+        return WallpaperAspectStyle::Fit; // Keep aspect ratio to fill, but don't expand/crop.
+    case 10:
+        return WallpaperAspectStyle::Fill; // Keep aspect ratio to fill, expand/crop if necessary.
+    case 22:
+        return WallpaperAspectStyle::Span; // ???
+    default:
+        return defaultStyle;
+    }
+}
+
+bool Utils::isBlurBehindWindowSupported()
+{
+    static const bool isWin11OrGreater = isWindowsVersionOrGreater(WindowsVersion::_11_21H2);
+    return isWin11OrGreater;
 }
 
 FRAMELESSHELPER_END_NAMESPACE

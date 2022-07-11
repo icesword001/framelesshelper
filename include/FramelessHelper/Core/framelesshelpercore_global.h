@@ -333,6 +333,17 @@ enum class BlurMode
 };
 Q_ENUM_NS(BlurMode)
 
+enum class WallpaperAspectStyle
+{
+    Fill = 0, // Keep aspect ratio to fill, expand/crop if necessary.
+    Fit = 1, // Keep aspect ratio to fill, but don't expand/crop.
+    Stretch = 2, // Ignore aspect ratio to fill.
+    Tile = 3,
+    Center = 4,
+    Span = 5 // ???
+};
+Q_ENUM_NS(WallpaperAspectStyle)
+
 struct VersionNumber
 {
     int major = 0;
