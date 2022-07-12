@@ -229,7 +229,7 @@ QColor Utils::calculateSystemButtonBackgroundColor(const SystemButtonType button
         }
         if (isTitleColor) {
 #ifdef Q_OS_WINDOWS
-            return getDwmColorizationColor();
+            return getDwmAccentColor();
 #endif
 #ifdef Q_OS_LINUX
             return getWmThemeColor();

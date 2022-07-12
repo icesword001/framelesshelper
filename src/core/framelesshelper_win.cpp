@@ -40,25 +40,7 @@ FRAMELESSHELPER_BEGIN_NAMESPACE
 
 using namespace Global;
 
-struct Win32HelperData
-{
-    SystemParameters params = {};
-    bool trackingMouse = false;
-    WId fallbackTitleBarWindowId = 0;
-};
-
-struct Win32Helper
-{
-    QMutex mutex;
-    QScopedPointer<FramelessHelperWin> nativeEventFilter;
-    QHash<WId, Win32HelperData> data = {};
-    QHash<WId, WId> fallbackTitleBarToParentWindowMapping = {};
-};
-
-Q_GLOBAL_STATIC(Win32Helper, g_win32Helper)
-
-static constexpr const wchar_t FALLBACK_TITLEBAR_CLASS_NAME[] = L"FALLBACK_TITLEBAR_WINDOW_CLASS\0";
-
+static constexpr const wchar_t kFallbackTitleBarWindowClass[] = L"FALLBACK_TITLEBAR_WINDOW_CLASS\0";
 FRAMELESSHELPER_BYTEARRAY_CONSTANT2(Win32MessageTypeName, "windows_generic_MSG")
 FRAMELESSHELPER_STRING_CONSTANT(MonitorFromWindow)
 FRAMELESSHELPER_STRING_CONSTANT(GetMonitorInfoW)
@@ -83,6 +65,31 @@ FRAMELESSHELPER_STRING_CONSTANT(SetLayeredWindowAttributes)
 FRAMELESSHELPER_STRING_CONSTANT(SetWindowPos)
 FRAMELESSHELPER_STRING_CONSTANT(TrackMouseEvent)
 FRAMELESSHELPER_STRING_CONSTANT(FindWindowW)
+
+struct Win32HelperData
+{
+    SystemParameters params = {};
+    bool trackingMouse = false;
+    WId fallbackTitleBarWindowId = 0;
+};
+
+struct Win32Helper
+{
+    QMutex mutex;
+    QScopedPointer<FramelessHelperWin> nativeEventFilter;
+    QHash<WId, Win32HelperData> data = {};
+    QHash<WId, WId> fallbackTitleBarToParentWindowMapping = {};
+};
+
+Q_GLOBAL_STATIC(Win32Helper, g_win32Helper)
+
+[[nodiscard]] static inline FramelessManagerPrivate *findFramelessManagerPrivate()
+{
+    if (FramelessManager * const manager = FramelessManager::instance()) {
+        return FramelessManagerPrivate::get(manager);
+    }
+    return nullptr;
+}
 
 [[nodiscard]] static inline LRESULT CALLBACK FallbackTitleBarWindowProc
     (const HWND hWnd, const UINT uMsg, const WPARAM wParam, const LPARAM lParam)
@@ -414,7 +421,7 @@ FRAMELESSHELPER_STRING_CONSTANT(FindWindowW)
         SecureZeroMemory(&wcex, sizeof(wcex));
         wcex.cbSize = sizeof(wcex);
         wcex.style = (CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS);
-        wcex.lpszClassName = FALLBACK_TITLEBAR_CLASS_NAME;
+        wcex.lpszClassName = kFallbackTitleBarWindowClass;
         wcex.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
         wcex.hCursor = LoadCursorW(nullptr, IDC_ARROW);
         wcex.lpfnWndProc = FallbackTitleBarWindowProc;
@@ -427,7 +434,7 @@ FRAMELESSHELPER_STRING_CONSTANT(FindWindowW)
         return false;
     }
     const HWND fallbackTitleBarWindowHandle = CreateWindowExW((WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP),
-                  FALLBACK_TITLEBAR_CLASS_NAME, nullptr, WS_CHILD, 0, 0, 0, 0,
+                  kFallbackTitleBarWindowClass, nullptr, WS_CHILD, 0, 0, 0, 0,
                   parentWindowHandle, nullptr, instance, nullptr);
     Q_ASSERT(fallbackTitleBarWindowHandle);
     if (!fallbackTitleBarWindowHandle) {
@@ -1059,8 +1066,7 @@ bool FramelessHelperWin::nativeEventFilter(const QByteArray &eventType, void *me
             break;
         }
     }
-    static const bool isWin10OrGreater = Utils::isWindowsVersionOrGreater(WindowsVersion::_10_1507);
-    if (isWin10OrGreater && data.fallbackTitleBarWindowId) {
+    if (data.fallbackTitleBarWindowId) {
         switch (uMsg) {
         case WM_SIZE: // Sent to a window after its size has changed.
         case WM_DISPLAYCHANGE: // Sent to a window when the display resolution has changed.
@@ -1072,6 +1078,12 @@ bool FramelessHelperWin::nativeEventFilter(const QByteArray &eventType, void *me
         } break;
         default:
             break;
+        }
+    }
+    if ((uMsg == WM_SETTINGCHANGE) && (wParam == SPI_SETDESKWALLPAPER)) {
+        // In some rare cases the FramelessManager instance may be destroyed already.
+        if (FramelessManagerPrivate * const managerPriv = findFramelessManagerPrivate()) {
+            managerPriv->notifyWallpaperHasChangedOrNot();
         }
     }
     bool systemThemeChanged = ((uMsg == WM_THEMECHANGED) || (uMsg == WM_SYSCOLORCHANGE)
@@ -1099,9 +1111,7 @@ bool FramelessHelperWin::nativeEventFilter(const QByteArray &eventType, void *me
     }
     if (systemThemeChanged) {
         // In some rare cases the FramelessManager instance may be destroyed already.
-        FramelessManager *manager = FramelessManager::instance();
-        if (manager) {
-            FramelessManagerPrivate *managerPriv = FramelessManagerPrivate::get(manager);
+        if (FramelessManagerPrivate * const managerPriv = findFramelessManagerPrivate()) {
             managerPriv->notifySystemThemeHasChangedOrNot();
         }
     }

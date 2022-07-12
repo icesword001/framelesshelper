@@ -150,6 +150,16 @@ QColor FramelessManagerPrivate::systemAccentColor() const
     return m_accentColor;
 }
 
+QString FramelessManagerPrivate::wallpaper() const
+{
+    return m_wallpaper;
+}
+
+WallpaperAspectStyle FramelessManagerPrivate::wallpaperAspectStyle() const
+{
+    return m_wallpaperAspectStyle;
+}
+
 void FramelessManagerPrivate::addWindow(const SystemParameters &params)
 {
     Q_ASSERT(params.isValid());
@@ -207,7 +217,7 @@ void FramelessManagerPrivate::notifySystemThemeHasChangedOrNot()
     const SystemTheme currentSystemTheme = Utils::getSystemTheme();
 #ifdef Q_OS_WINDOWS
     const DwmColorizationArea currentColorizationArea = Utils::getDwmColorizationArea();
-    const QColor currentAccentColor = Utils::getDwmColorizationColor();
+    const QColor currentAccentColor = Utils::getDwmAccentColor();
 #endif
 #ifdef Q_OS_LINUX
     const QColor currentAccentColor = Utils::getWmThemeColor();
@@ -235,12 +245,31 @@ void FramelessManagerPrivate::notifySystemThemeHasChangedOrNot()
     }
 }
 
+void FramelessManagerPrivate::notifyWallpaperHasChangedOrNot()
+{
+    Q_Q(FramelessManager);
+    const QString currentWallpaper = Utils::getWallpaperFilePath();
+    const WallpaperAspectStyle currentWallpaperAspectStyle = Utils::getWallpaperAspectStyle();
+    bool notify = false;
+    if (m_wallpaper != currentWallpaper) {
+        m_wallpaper = currentWallpaper;
+        notify = true;
+    }
+    if (m_wallpaperAspectStyle != currentWallpaperAspectStyle) {
+        m_wallpaperAspectStyle = currentWallpaperAspectStyle;
+        notify = true;
+    }
+    if (notify) {
+        Q_EMIT q->wallpaperChanged();
+    }
+}
+
 void FramelessManagerPrivate::initialize()
 {
     m_systemTheme = Utils::getSystemTheme();
 #ifdef Q_OS_WINDOWS
     m_colorizationArea = Utils::getDwmColorizationArea();
-    m_accentColor = Utils::getDwmColorizationColor();
+    m_accentColor = Utils::getDwmAccentColor();
 #endif
 #ifdef Q_OS_LINUX
     m_accentColor = Utils::getWmThemeColor();
@@ -248,6 +277,8 @@ void FramelessManagerPrivate::initialize()
 #ifdef Q_OS_MACOS
     m_accentColor = Utils::getControlsAccentColor();
 #endif
+    m_wallpaper = Utils::getWallpaperFilePath();
+    m_wallpaperAspectStyle = Utils::getWallpaperAspectStyle();
 }
 
 FramelessManager::FramelessManager(QObject *parent) :
@@ -272,6 +303,18 @@ QColor FramelessManager::systemAccentColor() const
 {
     Q_D(const FramelessManager);
     return d->systemAccentColor();
+}
+
+QString FramelessManager::wallpaper() const
+{
+    Q_D(const FramelessManager);
+    return d->wallpaper();
+}
+
+WallpaperAspectStyle FramelessManager::wallpaperAspectStyle() const
+{
+    Q_D(const FramelessManager);
+    return d->wallpaperAspectStyle();
 }
 
 void FramelessManager::addWindow(const SystemParameters &params)

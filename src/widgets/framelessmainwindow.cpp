@@ -103,6 +103,11 @@ void FramelessMainWindowPrivate::toggleFullScreen()
     }
 }
 
+WidgetsSharedHelper *FramelessMainWindowPrivate::widgetsSharedHelper() const
+{
+    return (m_helper.isNull() ? nullptr : m_helper.data());
+}
+
 FramelessMainWindow::FramelessMainWindow(QWidget *parent, const Qt::WindowFlags flags)
     : QMainWindow(parent, flags), d_ptr(new FramelessMainWindowPrivate(this))
 {

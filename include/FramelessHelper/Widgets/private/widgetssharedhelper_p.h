@@ -40,12 +40,16 @@ class FRAMELESSHELPER_WIDGETS_API WidgetsSharedHelper : public QObject
 {
     Q_OBJECT
     Q_DISABLE_COPY_MOVE(WidgetsSharedHelper)
+    Q_PROPERTY(bool micaEnabled READ isMicaEnabled WRITE setMicaEnabled NOTIFY micaEnabledChanged FINAL)
 
 public:
     explicit WidgetsSharedHelper(QObject *parent = nullptr);
     ~WidgetsSharedHelper() override;
 
     void setup(QWidget *widget);
+
+    Q_NODISCARD bool isMicaEnabled() const;
+    void setMicaEnabled(const bool value);
 
 protected:
     Q_NODISCARD bool eventFilter(QObject *object, QEvent *event) override;
@@ -58,10 +62,14 @@ private:
     void paintEventHandler(QPaintEvent *event);
     Q_NODISCARD bool shouldDrawFrameBorder() const;
 
+Q_SIGNALS:
+    void micaEnabledChanged();
+
 private:
     QPointer<QWidget> m_targetWidget = nullptr;
-    bool m_micaEnabled = true;
-    QScopedPointer<MicaMaterial> m_micaMaterial;
+    bool m_micaEnabled = false;
+    QPointer<MicaMaterial> m_micaMaterial;
+    QMetaObject::Connection m_micaRedrawConnection = {};
 };
 
 FRAMELESSHELPER_END_NAMESPACE

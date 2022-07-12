@@ -52,6 +52,8 @@ public:
     void toggleMaximized();
     void toggleFullScreen();
 
+    Q_NODISCARD WidgetsSharedHelper *widgetsSharedHelper() const;
+
 private:
     void initialize();
 

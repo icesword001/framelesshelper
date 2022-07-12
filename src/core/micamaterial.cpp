@@ -530,7 +530,7 @@ void MicaMaterialPrivate::updateMaterialBrush()
     initResource();
     static const QImage noiseTexture = QImage(kNoiseImageFilePath);
     QImage micaTexture = QImage(QSize(64, 64), QImage::Format_ARGB32_Premultiplied);
-    QColor fillColor = (Utils::shouldAppsUseDarkMode() ? kDefaultBlackColor : kDefaultWhiteColor);
+    QColor fillColor = (Utils::shouldAppsUseDarkMode() ? kDefaultSystemDarkColor : kDefaultSystemLightColor);
     fillColor.setAlphaF(0.9f);
     micaTexture.fill(fillColor);
     QPainter painter(&micaTexture);
@@ -560,6 +560,19 @@ void MicaMaterialPrivate::paint(QPainter *painter, const QSize &size, const QPoi
     painter->restore();
 }
 
+MicaMaterial *MicaMaterialPrivate::attach(QObject *target)
+{
+    Q_ASSERT(target);
+    if (!target) {
+        return nullptr;
+    }
+    if (const auto instance = target->findChild<MicaMaterial *>()) {
+        return instance;
+    }
+    const auto instance = new MicaMaterial(target);
+    return instance;
+}
+
 void MicaMaterialPrivate::initialize()
 {
     tintColor = kDefaultTransparentColor;
@@ -568,6 +581,10 @@ void MicaMaterialPrivate::initialize()
 
     connect(FramelessManager::instance(), &FramelessManager::systemThemeChanged,
         this, &MicaMaterialPrivate::updateMaterialBrush);
+    connect(FramelessManager::instance(), &FramelessManager::wallpaperChanged,
+        this, [this](){
+            maybeGenerateBlurredWallpaper(true);
+        });
 
     maybeGenerateBlurredWallpaper();
     updateMaterialBrush();
@@ -639,6 +656,11 @@ void MicaMaterial::paint(QPainter *painter, const QSize &size, const QPoint &pos
 {
     Q_D(const MicaMaterial);
     d->paint(painter, size, pos);
+}
+
+MicaMaterial *MicaMaterial::attach(QObject *target)
+{
+    return MicaMaterialPrivate::attach(target);
 }
 
 FRAMELESSHELPER_END_NAMESPACE

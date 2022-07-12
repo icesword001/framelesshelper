@@ -73,7 +73,7 @@ QuickGlobal::SystemTheme FramelessQuickUtils::systemTheme() const
 QColor FramelessQuickUtils::systemAccentColor() const
 {
 #ifdef Q_OS_WINDOWS
-    return Utils::getDwmColorizationColor();
+    return Utils::getDwmAccentColor();
 #elif defined(Q_OS_LINUX)
     return Utils::getWmThemeColor();
 #elif defined(Q_OS_MACOS)

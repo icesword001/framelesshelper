@@ -36,7 +36,6 @@ using namespace Global;
 
 WidgetsSharedHelper::WidgetsSharedHelper(QObject *parent) : QObject(parent)
 {
-    m_micaMaterial.reset(new MicaMaterial(this));
 }
 
 WidgetsSharedHelper::~WidgetsSharedHelper() = default;
@@ -51,12 +50,37 @@ void WidgetsSharedHelper::setup(QWidget *widget)
         return;
     }
     m_targetWidget = widget;
-    connect(m_micaMaterial.data(), &MicaMaterial::shouldRedraw, m_targetWidget, [this](){
-        m_targetWidget->update();
-    });
+    m_micaMaterial = MicaMaterial::attach(m_targetWidget);
+    if (m_micaRedrawConnection) {
+        disconnect(m_micaRedrawConnection);
+        m_micaRedrawConnection = {};
+    }
+    m_micaRedrawConnection = connect(m_micaMaterial, &MicaMaterial::shouldRedraw,
+        this, [this](){
+            if (m_targetWidget) {
+                m_targetWidget->update();
+            }
+        });
     m_targetWidget->installEventFilter(this);
     updateContentsMargins();
     m_targetWidget->update();
+}
+
+bool WidgetsSharedHelper::isMicaEnabled() const
+{
+    return m_micaEnabled;
+}
+
+void WidgetsSharedHelper::setMicaEnabled(const bool value)
+{
+    if (m_micaEnabled == value) {
+        return;
+    }
+    m_micaEnabled = value;
+    if (m_targetWidget) {
+        m_targetWidget->update();
+    }
+    Q_EMIT micaEnabledChanged();
 }
 
 bool WidgetsSharedHelper::eventFilter(QObject *object, QEvent *event)
@@ -65,6 +89,9 @@ bool WidgetsSharedHelper::eventFilter(QObject *object, QEvent *event)
     Q_ASSERT(event);
     if (!object || !event) {
         return false;
+    }
+    if (!m_targetWidget) {
+        return QObject::eventFilter(object, event);
     }
     if (!object->isWidgetType()) {
         return QObject::eventFilter(object, event);
@@ -111,7 +138,7 @@ void WidgetsSharedHelper::changeEventHandler(QEvent *event)
 void WidgetsSharedHelper::paintEventHandler(QPaintEvent *event)
 {
     Q_UNUSED(event);
-    if (m_micaEnabled && !m_micaMaterial.isNull()) {
+    if (m_micaEnabled && m_micaMaterial) {
         QPainter painter(m_targetWidget);
         m_micaMaterial->paint(&painter, m_targetWidget->size(),
             m_targetWidget->mapToGlobal(QPoint(0, 0)));
